@@ -19,6 +19,7 @@ Write-Step "Installing tools via winget"
 
 $tools = @(
     @{ Id = 'Git.Git';              Name = 'Git' },
+    @{ Id = 'jqlang.jq';            Name = 'jq' },
     @{ Id = 'GitHub.cli';           Name = 'GitHub CLI (gh)' },
     @{ Id = 'Docker.DockerDesktop'; Name = 'Docker Desktop' }
 )

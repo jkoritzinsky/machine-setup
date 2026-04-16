@@ -11,7 +11,7 @@ skip()  { printf '    \033[33mSKIP: %s\033[0m\n' "$1"; }
 step "Installing tools via apt"
 sudo apt-get update -qq
 
-for pkg in git ripgrep; do
+for pkg in git jq ripgrep; do
     if dpkg -s "$pkg" &>/dev/null; then
         skip "$pkg is already installed"
     else

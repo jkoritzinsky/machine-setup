@@ -3,6 +3,7 @@
 ## Tools to install
 
 - git
+- jq
 - gh CLI
 - copilot CLI
 - Docker

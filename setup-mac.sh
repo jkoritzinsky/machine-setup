@@ -25,7 +25,7 @@ fi
 
 step "Installing tools via Homebrew"
 
-formulae=(git gh ripgrep)
+formulae=(git gh jq ripgrep)
 
 for pkg in "${formulae[@]}"; do
     if brew list "$pkg" &>/dev/null; then
