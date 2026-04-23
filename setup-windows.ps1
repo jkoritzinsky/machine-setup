@@ -127,6 +127,7 @@ Write-Host @"
     Run these commands in your terminal:
 
       copilot plugin marketplace add jkoritzinsky/machine-setup
+      copilot plugin marketplace add dotnet/arcade-skills
       copilot plugin install notification-tools@machine-setup
       copilot plugin install workiq@copilot-plugins
       copilot plugin install dotnet-dnceng@dotnet-arcade-skills
