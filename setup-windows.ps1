@@ -126,10 +126,11 @@ Write-Step "Copilot plugins — install via Copilot CLI"
 Write-Host @"
     Run these commands inside a Copilot CLI session:
 
-      /plugin install jkoritzinsky/machine-setup
-      /plugin install copilot-plugins/workiq
-      /plugin install dotnet-arcade-skills/dotnet-dnceng
-      /plugin install awesome-copilot/dotnet
+      /plugin marketplace add jkoritzinsky/machine-setup
+      /plugin install notification-tools@machine-setup
+      /plugin install workiq@copilot-plugins
+      /plugin install dotnet-dnceng@dotnet-arcade-skills
+      /plugin install dotnet@awesome-copilot
 "@
 
 # ── Done ─────────────────────────────────────────────────────────────────────

@@ -33,7 +33,7 @@
 
 ## Copilot plugins
 
-- machine-setup@jkoritzinsky (this repo)
+- notification-tools@machine-setup (this repo)
 - workiq@copilot-plugins
 - dotnet-dnceng@dotnet-arcade-skills
 - dotnet@awesome-copilot
@@ -41,8 +41,9 @@
 Install via Copilot CLI:
 
 ```
-/plugin install jkoritzinsky/machine-setup
-/plugin install copilot-plugins/workiq
-/plugin install dotnet-arcade-skills/dotnet-dnceng
-/plugin install awesome-copilot/dotnet
+/plugin marketplace add jkoritzinsky/machine-setup
+/plugin install notification-tools@machine-setup
+/plugin install workiq@copilot-plugins
+/plugin install dotnet-dnceng@dotnet-arcade-skills
+/plugin install dotnet@awesome-copilot
 ```

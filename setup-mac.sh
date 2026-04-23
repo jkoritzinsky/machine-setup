@@ -114,7 +114,8 @@ step "Copilot plugins — install via Copilot CLI"
 cat <<'EOF'
     Run these commands inside a Copilot CLI session:
 
-      /plugin install jkoritzinsky/machine-setup
+      /plugin marketplace add jkoritzinsky/machine-setup
+      /plugin install notification-tools@machine-setup
       /plugin install copilot-plugins/workiq
       /plugin install dotnet-arcade-skills/dotnet-dnceng
       /plugin install awesome-copilot/dotnet

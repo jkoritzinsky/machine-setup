@@ -1,0 +1,15 @@
+{
+  "name": "machine-setup",
+  "metadata": {
+    "description": "Personal productivity plugins for GitHub notification management",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "notification-tools",
+      "source": "plugins/notification-tools",
+      "description": "GitHub notification triage and cleanup skills",
+      "version": "0.1.0"
+    }
+  ]
+}
