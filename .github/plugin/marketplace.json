@@ -1,5 +1,8 @@
 {
   "name": "machine-setup",
+  "owner": {
+    "name": "Jeremy Koritzinsky"
+  },
   "metadata": {
     "description": "Personal productivity plugins for GitHub notification management",
     "version": "0.1.0"
