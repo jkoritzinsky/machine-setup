@@ -124,13 +124,13 @@ if (Test-Path $mcpFile) {
 Write-Step "Copilot plugins — install via Copilot CLI"
 
 Write-Host @"
-    Run these commands inside a Copilot CLI session:
+    Run these commands in your terminal:
 
-      /plugin marketplace add jkoritzinsky/machine-setup
-      /plugin install notification-tools@machine-setup
-      /plugin install workiq@copilot-plugins
-      /plugin install dotnet-dnceng@dotnet-arcade-skills
-      /plugin install dotnet@awesome-copilot
+      copilot plugin marketplace add jkoritzinsky/machine-setup
+      copilot plugin install notification-tools@machine-setup
+      copilot plugin install workiq@copilot-plugins
+      copilot plugin install dotnet-dnceng@dotnet-arcade-skills
+      copilot plugin install dotnet@awesome-copilot
 "@
 
 # ── Done ─────────────────────────────────────────────────────────────────────
@@ -141,6 +141,6 @@ Write-Host @"
       1. Sign in to Docker Desktop and start the service
       2. Run 'gh auth login' if not already authenticated
     3. Add '%USERPROFILE%\\.dotnet\\tools' to PATH if dotnet tools are not found
-    4. Install the Copilot plugins listed above via /plugin install
+    4. Install the Copilot plugins listed above via copilot plugin install
     5. Verify windbg MCP proxy is installed via Microsoft Store (WinDbg Preview)
 "@

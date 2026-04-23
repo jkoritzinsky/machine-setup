@@ -230,13 +230,13 @@ fi
 step "Copilot plugins — install via Copilot CLI"
 
 cat <<'EOF'
-    Run these commands inside a Copilot CLI session:
+    Run these commands in your terminal:
 
-      /plugin marketplace add jkoritzinsky/machine-setup
-      /plugin install notification-tools@machine-setup
-      /plugin install copilot-plugins/workiq
-      /plugin install dotnet-arcade-skills/dotnet-dnceng
-      /plugin install awesome-copilot/dotnet
+      copilot plugin marketplace add jkoritzinsky/machine-setup
+      copilot plugin install notification-tools@machine-setup
+      copilot plugin install workiq@copilot-plugins
+      copilot plugin install dotnet-dnceng@dotnet-arcade-skills
+      copilot plugin install dotnet@awesome-copilot
 EOF
 
 # ── Done ─────────────────────────────────────────────────────────────────────
@@ -246,6 +246,6 @@ cat <<EOF
     Remaining manual steps:
       1. Start Docker: sudo systemctl enable --now docker
       2. Run 'gh auth login' if not already authenticated
-    3. Install the Copilot plugins listed above via /plugin install
+    3. Install the Copilot plugins listed above via copilot plugin install
     4. Log out and back in if you were added to the docker group
 EOF

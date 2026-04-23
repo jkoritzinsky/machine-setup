@@ -41,9 +41,9 @@
 Install via Copilot CLI:
 
 ```
-/plugin marketplace add jkoritzinsky/machine-setup
-/plugin install notification-tools@machine-setup
-/plugin install workiq@copilot-plugins
-/plugin install dotnet-dnceng@dotnet-arcade-skills
-/plugin install dotnet@awesome-copilot
+copilot plugin marketplace add jkoritzinsky/machine-setup
+copilot plugin install notification-tools@machine-setup
+copilot plugin install workiq@copilot-plugins
+copilot plugin install dotnet-dnceng@dotnet-arcade-skills
+copilot plugin install dotnet@awesome-copilot
 ```
