@@ -121,27 +121,15 @@ if (Test-Path $mcpFile) {
 
 # ── Copilot plugins ─────────────────────────────────────────────────────────
 
-Write-Step "Copilot plugins (may require org/admin access)"
-
-$plugins = @(
-    'workiq/copilot-plugins',
-    'dotnet-dnceng/dotnet-arcade-skills',
-    'dotnet/awesome-copilot'
-)
+Write-Step "Copilot plugins — install via Copilot CLI"
 
 Write-Host @"
-    The following Copilot Extensions should be enabled for your account:
+    Run these commands inside a Copilot CLI session:
 
-"@
-
-foreach ($plugin in $plugins) {
-    Write-Host "      - https://github.com/$plugin"
-}
-
-Write-Host @"
-
-    Install them from the GitHub Marketplace or your organization's
-    Copilot settings at https://github.com/settings/copilot
+      /plugin install jkoritzinsky/machine-setup
+      /plugin install copilot-plugins/workiq
+      /plugin install dotnet-arcade-skills/dotnet-dnceng
+      /plugin install awesome-copilot/dotnet
 "@
 
 # ── Done ─────────────────────────────────────────────────────────────────────
@@ -152,6 +140,6 @@ Write-Host @"
       1. Sign in to Docker Desktop and start the service
       2. Run 'gh auth login' if not already authenticated
     3. Add '%USERPROFILE%\\.dotnet\\tools' to PATH if dotnet tools are not found
-    4. Enable the Copilot plugins listed above
+    4. Install the Copilot plugins listed above via /plugin install
     5. Verify windbg MCP proxy is installed via Microsoft Store (WinDbg Preview)
 "@

@@ -109,17 +109,15 @@ fi
 
 # ── Copilot plugins ─────────────────────────────────────────────────────────
 
-step "Copilot plugins (may require org/admin access)"
+step "Copilot plugins — install via Copilot CLI"
 
 cat <<'EOF'
-    The following Copilot Extensions should be enabled for your account:
+    Run these commands inside a Copilot CLI session:
 
-      - https://github.com/workiq/copilot-plugins
-      - https://github.com/dotnet-dnceng/dotnet-arcade-skills
-      - https://github.com/dotnet/awesome-copilot
-
-    Install them from the GitHub Marketplace or your organization's
-    Copilot settings at https://github.com/settings/copilot
+      /plugin install jkoritzinsky/machine-setup
+      /plugin install copilot-plugins/workiq
+      /plugin install dotnet-arcade-skills/dotnet-dnceng
+      /plugin install awesome-copilot/dotnet
 EOF
 
 # ── Done ─────────────────────────────────────────────────────────────────────
@@ -130,5 +128,5 @@ cat <<EOF
       1. Open Docker Desktop and complete first-run setup
       2. Run 'gh auth login' if not already authenticated
     3. Add '\$HOME/.dotnet/tools' to PATH if dotnet tools are not found
-    4. Enable the Copilot plugins listed above
+    4. Install the Copilot plugins listed above via /plugin install
 EOF

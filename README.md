@@ -33,6 +33,16 @@
 
 ## Copilot plugins
 
+- machine-setup@jkoritzinsky (this repo)
 - workiq@copilot-plugins
 - dotnet-dnceng@dotnet-arcade-skills
 - dotnet@awesome-copilot
+
+Install via Copilot CLI:
+
+```
+/plugin install jkoritzinsky/machine-setup
+/plugin install copilot-plugins/workiq
+/plugin install dotnet-arcade-skills/dotnet-dnceng
+/plugin install awesome-copilot/dotnet
+```
