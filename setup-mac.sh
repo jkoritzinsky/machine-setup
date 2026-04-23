@@ -61,7 +61,6 @@ fi
 step "Installing gh extensions"
 
 gh_extensions=(
-    "github/gh-copilot"    # Copilot CLI
     "github/gh-aw"         # Agentic Workflows
     "github/gh-stack"
     "nektos/gh-act"
@@ -107,20 +106,46 @@ else
     done_ "MCP config written to $mcp_file"
 fi
 
+# ── Copilot CLI ──────────────────────────────────────────────────────────────
+
+step "Installing Copilot CLI"
+
+if gh extension list 2>/dev/null | grep -q '^gh-copilot\b'; then
+    skip "Copilot CLI is already installed"
+else
+    gh extension install github/gh-copilot
+    done_ "Copilot CLI installed"
+fi
+
 # ── Copilot plugins ─────────────────────────────────────────────────────────
 
-step "Copilot plugins — install via Copilot CLI"
+step "Installing Copilot plugins"
 
-cat <<'EOF'
-    Run these commands in your terminal:
+if ! gh extension list 2>/dev/null | grep -q '^gh-copilot\b'; then
+    skip "Copilot CLI not found; skipping Copilot plugin installation"
+else
+    run_copilot_cmd() {
+        local label="$1"
+        shift
 
-      copilot plugin marketplace add jkoritzinsky/machine-setup
-      copilot plugin marketplace add dotnet/arcade-skills
-      copilot plugin install notification-tools@machine-setup
-      copilot plugin install workiq@copilot-plugins
-      copilot plugin install dotnet-dnceng@dotnet-arcade-skills
-      copilot plugin install dotnet@awesome-copilot
-EOF
+        local output
+        if output=$(gh copilot "$@" 2>&1); then
+            done_ "$label"
+        elif grep -qi "already" <<<"$output"; then
+            skip "$label is already configured"
+        else
+            echo "$output" >&2
+            return 1
+        fi
+    }
+
+    run_copilot_cmd "Added marketplace jkoritzinsky/machine-setup" plugin marketplace add jkoritzinsky/machine-setup
+    run_copilot_cmd "Added marketplace dotnet/arcade-skills" plugin marketplace add dotnet/arcade-skills
+    run_copilot_cmd "Installed notification-tools@machine-setup" plugin install notification-tools@machine-setup
+    run_copilot_cmd "Installed workiq@copilot-plugins" plugin install workiq@copilot-plugins
+    run_copilot_cmd "Installed dotnet-dnceng@dotnet-arcade-skills" plugin install dotnet-dnceng@dotnet-arcade-skills
+    run_copilot_cmd "Installed dotnet@awesome-copilot" plugin install dotnet@awesome-copilot
+fi
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 
@@ -129,6 +154,5 @@ cat <<EOF
     Remaining manual steps:
       1. Open Docker Desktop and complete first-run setup
       2. Run 'gh auth login' if not already authenticated
-    3. Add '\$HOME/.dotnet/tools' to PATH if dotnet tools are not found
-    4. Install the Copilot plugins listed above via copilot plugin install
+      3. Add '\$HOME/.dotnet/tools' to PATH if dotnet tools are not found
 EOF

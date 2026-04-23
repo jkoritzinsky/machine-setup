@@ -67,7 +67,6 @@ foreach ($tool in $dotnetTools) {
 Write-Step "Installing gh extensions"
 
 $ghExtensions = @(
-    'github/gh-copilot',   # Copilot CLI
     'github/gh-aw',        # Agentic Workflows
     'github/gh-stack',
     'nektos/gh-act'
@@ -119,20 +118,49 @@ if (Test-Path $mcpFile) {
     Write-Done "MCP config written to $mcpFile"
 }
 
+# ── Copilot CLI ──────────────────────────────────────────────────────────────
+
+Write-Step "Installing Copilot CLI"
+
+$copilotExtensionInstalled = gh extension list 2>$null | Select-String '^gh-copilot\b'
+if ($copilotExtensionInstalled) {
+    Write-Skip "Copilot CLI is already installed"
+} else {
+    gh extension install github/gh-copilot
+    Write-Done "Copilot CLI installed"
+}
+
 # ── Copilot plugins ─────────────────────────────────────────────────────────
 
-Write-Step "Copilot plugins — install via Copilot CLI"
+Write-Step "Installing Copilot plugins"
 
-Write-Host @"
-    Run these commands in your terminal:
+$copilotExtensionInstalled = gh extension list 2>$null | Select-String '^gh-copilot\b'
+if (-not $copilotExtensionInstalled) {
+    Write-Skip "Copilot CLI not found; skipping Copilot plugin installation"
+} else {
+    function Invoke-CopilotPluginCommand {
+        param(
+            [Parameter(Mandatory=$true)][string]$Label,
+            [Parameter(Mandatory=$true)][string[]]$Args
+        )
 
-      copilot plugin marketplace add jkoritzinsky/machine-setup
-      copilot plugin marketplace add dotnet/arcade-skills
-      copilot plugin install notification-tools@machine-setup
-      copilot plugin install workiq@copilot-plugins
-      copilot plugin install dotnet-dnceng@dotnet-arcade-skills
-      copilot plugin install dotnet@awesome-copilot
-"@
+        $output = & gh copilot @Args 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Done $Label
+        } elseif (($output | Out-String) -match 'already') {
+            Write-Skip "$Label is already configured"
+        } else {
+            throw "gh copilot $($Args -join ' ') failed: $output"
+        }
+    }
+
+    Invoke-CopilotPluginCommand -Label "Added marketplace jkoritzinsky/machine-setup" -Args @('plugin', 'marketplace', 'add', 'jkoritzinsky/machine-setup')
+    Invoke-CopilotPluginCommand -Label "Added marketplace dotnet/arcade-skills" -Args @('plugin', 'marketplace', 'add', 'dotnet/arcade-skills')
+    Invoke-CopilotPluginCommand -Label "Installed notification-tools@machine-setup" -Args @('plugin', 'install', 'notification-tools@machine-setup')
+    Invoke-CopilotPluginCommand -Label "Installed workiq@copilot-plugins" -Args @('plugin', 'install', 'workiq@copilot-plugins')
+    Invoke-CopilotPluginCommand -Label "Installed dotnet-dnceng@dotnet-arcade-skills" -Args @('plugin', 'install', 'dotnet-dnceng@dotnet-arcade-skills')
+    Invoke-CopilotPluginCommand -Label "Installed dotnet@awesome-copilot" -Args @('plugin', 'install', 'dotnet@awesome-copilot')
+}
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 
@@ -141,7 +169,6 @@ Write-Host @"
     Remaining manual steps:
       1. Sign in to Docker Desktop and start the service
       2. Run 'gh auth login' if not already authenticated
-    3. Add '%USERPROFILE%\\.dotnet\\tools' to PATH if dotnet tools are not found
-    4. Install the Copilot plugins listed above via copilot plugin install
-    5. Verify windbg MCP proxy is installed via Microsoft Store (WinDbg Preview)
+      3. Add '%USERPROFILE%\\.dotnet\\tools' to PATH if dotnet tools are not found
+      4. Verify windbg MCP proxy is installed via Microsoft Store (WinDbg Preview)
 "@
