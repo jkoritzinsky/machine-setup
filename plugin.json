@@ -1,0 +1,6 @@
+{
+  "name": "machine-setup",
+  "version": "0.1.0",
+  "description": "Personal productivity skills for GitHub notification triage and cleanup.",
+  "skills": "./skills"
+}
