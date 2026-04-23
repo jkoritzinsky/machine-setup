@@ -21,7 +21,8 @@ $tools = @(
     @{ Id = 'Git.Git';              Name = 'Git' },
     @{ Id = 'jqlang.jq';            Name = 'jq' },
     @{ Id = 'GitHub.cli';           Name = 'GitHub CLI (gh)' },
-    @{ Id = 'Docker.DockerDesktop'; Name = 'Docker Desktop' }
+    @{ Id = 'Docker.DockerDesktop'; Name = 'Docker Desktop' },
+    @{ Id = 'Microsoft.DotNet.SDK.9'; Name = '.NET SDK' }
 )
 
 foreach ($tool in $tools) {
@@ -41,6 +42,25 @@ $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
 # Note: ripgrep is NOT installed on Windows (README: "Non-Windows only")
+
+# ── Dotnet tools ────────────────────────────────────────────────────────────
+
+Write-Step "Installing global dotnet tools"
+
+$dotnetTools = @(
+    'binloginsights.mcp'
+)
+
+foreach ($tool in $dotnetTools) {
+    $existing = dotnet tool list -g 2>&1 | Select-String "^$tool\s"
+    if ($existing) {
+        Write-Skip "dotnet tool $tool is already installed"
+    } else {
+        Write-Host "    Installing dotnet tool $tool..."
+        dotnet tool install -g $tool
+        Write-Done "dotnet tool $tool installed"
+    }
+}
 
 # ── gh extensions ────────────────────────────────────────────────────────────
 
@@ -131,6 +151,7 @@ Write-Host @"
     Remaining manual steps:
       1. Sign in to Docker Desktop and start the service
       2. Run 'gh auth login' if not already authenticated
-      3. Enable the Copilot plugins listed above
-      4. Verify windbg MCP proxy is installed via Microsoft Store (WinDbg Preview)
+    3. Add '%USERPROFILE%\\.dotnet\\tools' to PATH if dotnet tools are not found
+    4. Enable the Copilot plugins listed above
+    5. Verify windbg MCP proxy is installed via Microsoft Store (WinDbg Preview)
 "@

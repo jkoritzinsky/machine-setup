@@ -7,10 +7,15 @@
 - gh CLI
 - copilot CLI
 - Docker
+- .NET SDK (latest release)
 
 ### Non-Windows only
 
 - ripgrep
+
+## Dotnet tools (dotnet tool install -g)
+
+- binloginsights.mcp
 
 ## gh extensions
 

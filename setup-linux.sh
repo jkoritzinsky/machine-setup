@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Machine setup script for Linux (Debian/Ubuntu).
+# Machine setup script for Linux (apt/dnf based distros).
 set -euo pipefail
 
 step()  { printf '\n\033[36m>>> %s\033[0m\n' "$1"; }
@@ -47,6 +47,72 @@ else
     curl -fsSL https://get.docker.com | sudo sh
     sudo usermod -aG docker "$USER"
     done_ "Docker installed (log out and back in for group changes)"
+fi
+
+# ── .NET SDK ─────────────────────────────────────────────────────────────────
+
+step "Installing .NET SDK via package manager"
+
+if command -v dotnet &>/dev/null; then
+    skip ".NET SDK is already installed"
+else
+    # Install via distro package manager (apt or dnf), including Microsoft repo.
+    if command -v apt-get &>/dev/null; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+
+        if [[ "${ID:-}" == "ubuntu" ]]; then
+            repo_deb="https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb"
+        elif [[ "${ID:-}" == "debian" ]]; then
+            repo_deb="https://packages.microsoft.com/config/debian/${VERSION_ID}/packages-microsoft-prod.deb"
+        else
+            echo "Unsupported apt-based distro for automatic .NET repo setup: ${ID:-unknown}" >&2
+            exit 1
+        fi
+
+        if ! dpkg -s packages-microsoft-prod &>/dev/null; then
+            tmp_pkg="/tmp/packages-microsoft-prod.deb"
+            curl -fsSL "$repo_deb" -o "$tmp_pkg"
+            sudo dpkg -i "$tmp_pkg"
+            rm -f "$tmp_pkg"
+        fi
+
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq dotnet-sdk-9.0
+        done_ ".NET SDK installed"
+    elif command -v dnf &>/dev/null; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+
+        if [[ "${ID:-}" == "fedora" ]]; then
+            repo_rpm="https://packages.microsoft.com/config/fedora/${VERSION_ID}/packages-microsoft-prod.rpm"
+        else
+            major="${VERSION_ID%%.*}"
+            repo_rpm="https://packages.microsoft.com/config/rhel/${major}/packages-microsoft-prod.rpm"
+        fi
+
+        if ! rpm -q packages-microsoft-prod &>/dev/null; then
+            sudo dnf install -y "$repo_rpm"
+        fi
+
+        sudo dnf makecache -y
+        sudo dnf install -y dotnet-sdk-9.0
+        done_ ".NET SDK installed"
+    else
+        echo "Neither apt-get nor dnf is available. Cannot install .NET SDK automatically." >&2
+        exit 1
+    fi
+fi
+
+# ── Dotnet tools ────────────────────────────────────────────────────────────
+
+step "Installing global dotnet tools"
+
+if dotnet tool list -g 2>/dev/null | grep -q '^binloginsights.mcp '; then
+    skip "dotnet tool binloginsights.mcp is already installed"
+else
+    dotnet tool install -g binloginsights.mcp
+    done_ "dotnet tool binloginsights.mcp installed"
 fi
 
 # ── gh extensions ────────────────────────────────────────────────────────────
@@ -122,6 +188,6 @@ cat <<EOF
     Remaining manual steps:
       1. Start Docker: sudo systemctl enable --now docker
       2. Run 'gh auth login' if not already authenticated
-      3. Enable the Copilot plugins listed above
-      4. Log out and back in if you were added to the docker group
+            3. Enable the Copilot plugins listed above
+            4. Log out and back in if you were added to the docker group
 EOF

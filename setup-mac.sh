@@ -25,7 +25,7 @@ fi
 
 step "Installing tools via Homebrew"
 
-formulae=(git gh jq ripgrep)
+formulae=(git gh jq ripgrep dotnet)
 
 for pkg in "${formulae[@]}"; do
     if brew list "$pkg" &>/dev/null; then
@@ -35,6 +35,17 @@ for pkg in "${formulae[@]}"; do
         done_ "$pkg installed"
     fi
 done
+
+# ── Dotnet tools ────────────────────────────────────────────────────────────
+
+step "Installing global dotnet tools"
+
+if dotnet tool list -g 2>/dev/null | grep -q '^binloginsights.mcp '; then
+    skip "dotnet tool binloginsights.mcp is already installed"
+else
+    dotnet tool install -g binloginsights.mcp
+    done_ "dotnet tool binloginsights.mcp installed"
+fi
 
 step "Installing Docker Desktop"
 
@@ -118,5 +129,6 @@ cat <<EOF
     Remaining manual steps:
       1. Open Docker Desktop and complete first-run setup
       2. Run 'gh auth login' if not already authenticated
-      3. Enable the Copilot plugins listed above
+    3. Add '\$HOME/.dotnet/tools' to PATH if dotnet tools are not found
+    4. Enable the Copilot plugins listed above
 EOF
