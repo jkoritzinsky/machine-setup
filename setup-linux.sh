@@ -6,61 +6,126 @@ step()  { printf '\n\033[36m>>> %s\033[0m\n' "$1"; }
 done_() { printf '    \033[32m%s\033[0m\n' "$1"; }
 skip()  { printf '    \033[33mSKIP: %s\033[0m\n' "$1"; }
 
+# shellcheck disable=SC1091
+. /etc/os-release
+
+if command -v apt-get &>/dev/null; then
+    pkg_mgr="apt"
+elif command -v dnf &>/dev/null; then
+    pkg_mgr="dnf"
+else
+    echo "Neither apt-get nor dnf is available. Cannot continue." >&2
+    exit 1
+fi
+
+pkg_installed() {
+    local pkg="$1"
+    if [[ "$pkg_mgr" == "apt" ]]; then
+        dpkg -s "$pkg" &>/dev/null
+    else
+        rpm -q "$pkg" &>/dev/null
+    fi
+}
+
+pkg_update() {
+    if [[ "$pkg_mgr" == "apt" ]]; then
+        sudo apt-get update -qq
+    else
+        sudo dnf makecache -y >/dev/null
+    fi
+}
+
+pkg_install() {
+    if [[ "$pkg_mgr" == "apt" ]]; then
+        sudo apt-get install -y -qq "$@"
+    else
+        sudo dnf install -y "$@"
+    fi
+}
+
 # ── Tools ────────────────────────────────────────────────────────────────────
 
-step "Installing tools via apt"
-sudo apt-get update -qq
+step "Installing base tools via $pkg_mgr"
+pkg_update
 
 for pkg in git jq ripgrep; do
-    if dpkg -s "$pkg" &>/dev/null; then
+    if pkg_installed "$pkg"; then
         skip "$pkg is already installed"
     else
-        sudo apt-get install -y -qq "$pkg"
+        pkg_install "$pkg"
         done_ "$pkg installed"
     fi
 done
 
 # ── GitHub CLI ───────────────────────────────────────────────────────────────
 
-step "Installing GitHub CLI (gh)"
+step "Installing GitHub CLI (gh) via $pkg_mgr"
 
 if command -v gh &>/dev/null; then
     skip "gh is already installed"
 else
-    sudo mkdir -p -m 755 /etc/apt/keyrings
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-        | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
-    sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-        | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
-    sudo apt-get update -qq && sudo apt-get install -y -qq gh
+    if [[ "$pkg_mgr" == "apt" ]]; then
+        sudo mkdir -p -m 755 /etc/apt/keyrings
+        if [[ ! -f /etc/apt/keyrings/githubcli-archive-keyring.gpg ]]; then
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+                | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
+            sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+        fi
+
+        if [[ ! -f /etc/apt/sources.list.d/github-cli.list ]]; then
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+                | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+        fi
+
+        pkg_update
+        pkg_install gh
+    else
+        if ! sudo dnf repolist 2>/dev/null | grep -q '^gh-cli'; then
+            pkg_install dnf-plugins-core
+            sudo dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo
+        fi
+
+        pkg_update
+        pkg_install gh
+    fi
+
     done_ "gh installed"
 fi
 
 # ── Docker ───────────────────────────────────────────────────────────────────
 
-step "Installing Docker"
+step "Installing Docker via $pkg_mgr"
 
 if command -v docker &>/dev/null; then
     skip "Docker is already installed"
 else
-    curl -fsSL https://get.docker.com | sudo sh
+    if [[ "$pkg_mgr" == "apt" ]]; then
+        pkg_install docker.io
+    else
+        if [[ "${ID:-}" == "fedora" ]]; then
+            pkg_install moby-engine
+        else
+            pkg_install dnf-plugins-core
+            if ! sudo dnf repolist 2>/dev/null | grep -q '^docker-ce-stable'; then
+                sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+            fi
+            pkg_update
+            pkg_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        fi
+    fi
+
     sudo usermod -aG docker "$USER"
     done_ "Docker installed (log out and back in for group changes)"
 fi
 
 # ── .NET SDK ─────────────────────────────────────────────────────────────────
 
-step "Installing .NET SDK via package manager"
+step "Installing .NET SDK via $pkg_mgr"
 
 if command -v dotnet &>/dev/null; then
     skip ".NET SDK is already installed"
 else
-    # Install via distro package manager (apt or dnf), including Microsoft repo.
-    if command -v apt-get &>/dev/null; then
-        # shellcheck disable=SC1091
-        . /etc/os-release
-
+    if [[ "$pkg_mgr" == "apt" ]]; then
         if [[ "${ID:-}" == "ubuntu" ]]; then
             repo_deb="https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb"
         elif [[ "${ID:-}" == "debian" ]]; then
@@ -77,13 +142,10 @@ else
             rm -f "$tmp_pkg"
         fi
 
-        sudo apt-get update -qq
-        sudo apt-get install -y -qq dotnet-sdk-9.0
+        pkg_update
+        pkg_install dotnet-sdk-9.0
         done_ ".NET SDK installed"
-    elif command -v dnf &>/dev/null; then
-        # shellcheck disable=SC1091
-        . /etc/os-release
-
+    else
         if [[ "${ID:-}" == "fedora" ]]; then
             repo_rpm="https://packages.microsoft.com/config/fedora/${VERSION_ID}/packages-microsoft-prod.rpm"
         else
@@ -92,15 +154,12 @@ else
         fi
 
         if ! rpm -q packages-microsoft-prod &>/dev/null; then
-            sudo dnf install -y "$repo_rpm"
+            pkg_install "$repo_rpm"
         fi
 
-        sudo dnf makecache -y
-        sudo dnf install -y dotnet-sdk-9.0
+        pkg_update
+        pkg_install dotnet-sdk-9.0
         done_ ".NET SDK installed"
-    else
-        echo "Neither apt-get nor dnf is available. Cannot install .NET SDK automatically." >&2
-        exit 1
     fi
 fi
 
@@ -188,6 +247,6 @@ cat <<EOF
     Remaining manual steps:
       1. Start Docker: sudo systemctl enable --now docker
       2. Run 'gh auth login' if not already authenticated
-            3. Enable the Copilot plugins listed above
-            4. Log out and back in if you were added to the docker group
+    3. Enable the Copilot plugins listed above
+    4. Log out and back in if you were added to the docker group
 EOF
