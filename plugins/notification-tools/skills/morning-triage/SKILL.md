@@ -11,22 +11,27 @@ Fetch and triage the user's GitHub notifications, categorizing them by priority.
 
 ## Steps
 
-1. **Fetch notifications** using `gh api /notifications --paginate` and parse the JSON.
-   Extract: id, reason, title, type, subject URL, repository, and updated_at.
+1. **Clean up stale notifications** — invoke the **notification-cleanup** skill to
+   dismiss stale notifications before triaging. This handles closed/merged PRs and
+   issues with no meaningful post-closure activity, including backport and revert PR
+   exceptions. Proceed without asking for confirmation. Include a brief summary of
+   what was dismissed before the triage output.
 
-2. **Fetch area labels** for each notification that points to a dotnet/runtime issue or PR.
+2. **Fetch remaining notifications** using `gh api /notifications --paginate` and
+   parse the JSON. Extract: id, reason, title, type, subject URL, repository, and
+   updated_at. These are the notifications that survived cleanup and need triaging.
+
+3. **Fetch area labels** for each notification that points to a dotnet/runtime issue or PR.
    Use `gh api repos/{repo}/issues/{number}/labels` and extract labels matching `area-*`.
 
-3. **Check closed/merged status** for each PR and issue notification.
-   - For PRs: `gh api repos/{repo}/pulls/{number}` — check `state`, `merged`, `merged_at`.
-   - For Issues: `gh api repos/{repo}/issues/{number}` — check `state`, `closed_at`.
-   - Also check the notification's `subject.latest_comment_url`. If it is non-null, fetch it
-     and extract its `created_at` timestamp. If `latest_comment_url` is null, treat the last
-     comment time as epoch zero (i.e., no comment after close).
-   - Mark the item as **stale-closed** if it is closed/merged AND the last comment time
-     is before the closed_at/merged_at time (meaning no new discussion since closure).
+4. **Check closed/merged status** for each PR and issue notification.
+   - For PRs: `gh api repos/{repo}/pulls/{number}` — check `state`, `merged`.
+   - For Issues: `gh api repos/{repo}/issues/{number}` — check `state`.
+   - Annotate closed/merged items with "(closed)" or "(merged)" in the output.
+     These items survived cleanup, so they have meaningful post-closure activity
+     and should be triaged at their normal priority.
 
-4. **Check for prior @-mention and approval status** on `comment` and `team_mention`
+5. **Check for prior @-mention and approval status** on `comment` and `team_mention`
    notifications that point to PRs. This determines whether the item should be promoted.
    - Fetch PR comments via `gh api repos/{repo}/issues/{number}/comments` and check
      whether any comment body contains `@{your_username}` (e.g., `@jkoritzinsky`).
@@ -35,7 +40,7 @@ Fetch and triage the user's GitHub notifications, categorizing them by priority.
    - Mark the item as **prior-mention-pending** if you were @-mentioned in any comment
      AND you have NOT approved the PR.
 
-5. **Categorize by priority** using the rules below, then present a triage summary
+6. **Categorize by priority** using the rules below, then present a triage summary
    organized from highest to lowest priority.
 
 ## Priority Rules
@@ -73,10 +78,6 @@ Present results in these tiers, each as a markdown table:
 - For repositories other than dotnet/runtime (e.g., dotnet/dotnet, dotnet/sdk),
   treat notifications as infrastructure-related unless labels say otherwise.
 - Automated merge PRs (`[automated] Merge branch ...`) are always MEDIUM-LOW.
-- **Stale-closed demotion:** Any closed/merged PR or closed issue where the last comment
-  time is before the closed_at/merged_at time is demoted to ⚪ LOWEST regardless of
-  other priority rules. These items were closed without subsequent discussion and
-  likely need no action. Annotate them with "(closed)" or "(merged)" in the output.
 - Include a **TL;DR** at the end summarizing the top 2–3 items to focus on first.
 
 ## Output Format
