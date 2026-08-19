@@ -40,6 +40,18 @@ Fetch and triage the user's GitHub notifications, categorizing them by priority.
    - Mark the item as **prior-mention-pending** if you were @-mentioned in any comment
      AND you have NOT approved the PR.
 
+5b. **Check PR stack position** for PR notifications using the GitHub API as well as
+   the PR metadata itself. Use `gh api repos/{repo}/pulls/{number}` to inspect the
+   PR body and related metadata, and if needed use `gh api graphql` to fetch the
+   PR's cross-references / linked PRs / branch relationships for stack markers such as
+   `Depends on #123`, `Stacked on #123`, or other related PRs in the same stack.
+   - The **bottom of the stack** is the base PR with no earlier PR it depends on.
+   - PRs in a PR stack that are not the bottom of the stack are **deprioritized**
+     because they are follow-up work in the chain rather than the actionable base.
+   - When a stacked PR is not the bottom of the stack, lower its tier by one level
+     after the normal engagement/area calculation. Never let a stacked non-bottom PR
+     outrank the bottom PR in the same stack.
+ 
 6. **Categorize by priority** using the rules below, then present a triage summary
    organized from highest to lowest priority.
 
@@ -59,9 +71,9 @@ Fetch and triage the user's GitHub notifications, categorizing them by priority.
    are the **lowest priority** regardless of engagement level
 
 ### Combined priority tiers
-
+ 
 Present results in these tiers, each as a markdown table:
-
+ 
 - 🔴 **HIGH** — assigned or mentioned (regardless of area);
   OR review_requested AND area is Interop/AppModel/ReadyToRun
 - 🟠 **MEDIUM-HIGH** — review_requested (regardless of area);
@@ -73,6 +85,19 @@ Present results in these tiers, each as a markdown table:
 - ⚪ **LOWEST** — comment or other engagement where area does NOT include
   Interop, AppModel, ReadyToRun, or Infrastructure
 
+### PR stack adjustment
+ 
+- PRs in a PR stack that are not the bottom of the stack are always deprioritized.
+- Determine the bottom-of-stack PR first by querying the GitHub API for the PR body,
+  cross-references, and linked PR metadata; the base PR is the one that is not
+  blocked by an earlier PR in the same stack.
+- If a PR is not the bottom of the stack, lower its priority by one tier after the
+  standard engagement/area calculation. Example: HIGH -> MEDIUM-HIGH,
+  MEDIUM-HIGH -> MEDIUM, MEDIUM -> MEDIUM-LOW, MEDIUM-LOW -> LOWEST.
+- A stacked non-bottom PR should never outrank the bottom PR in the same stack,
+  even if it has a review request or direct mention.
+- If the stacked PR is already LOWEST, keep it LOWEST rather than lowering further.
+ 
 ### Additional rules
 
 - For repositories other than dotnet/runtime (e.g., dotnet/dotnet, dotnet/sdk),
