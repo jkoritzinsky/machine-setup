@@ -31,6 +31,14 @@ where there has been no new comment since closure.
    - An item is **stale-closed** if it is closed/merged AND either there is no
      latest_comment_url OR the last comment's `created_at` is before the
      `closed_at`/`merged_at` time.
+   - **CCR no-op exception**: If there are post-closure comments, fetch ALL
+     comments after the closure time. Treat the item as stale-closed if the
+     comments are exclusively a single comment from `@copilot code review` (for
+     example, `@copilot` / `copilot-pull-request-reviewer[bot]` in the GitHub
+     review app) whose body says it reviewed `N` files and no comments were
+     generated, e.g. the body contains both "reviewed N files" and "no comments
+     were generated". This is a code-review pass with no actionable feedback, so
+     it should not block dismissal.
    - **Backport exception**: If the latest comment is after closure, fetch ALL
      comments posted after the `closed_at`/`merged_at` time using
      `repos/{owner}/{repo}/issues/{number}/comments?since={closed_at}`.
@@ -81,7 +89,9 @@ where there has been no new comment since closure.
 - Only dismiss notifications for items that are closed/merged WITH no post-closure comments.
 - Never dismiss notifications for open items.
 - Never dismiss notifications where there is a comment newer than the closure time,
-  as that may indicate follow-up discussion the user should see.
+  as that may indicate follow-up discussion the user should see, except when the
+  only post-closure comment is a single `@copilot code review` no-op summary that
+  says it reviewed `N` files and generated no comments.
 - Never dismiss notifications for revert PRs that revert the user's own PRs unless
   the user has already participated in the revert PR conversation.
 - Print what will be dismissed and ask for user confirmation before making any
