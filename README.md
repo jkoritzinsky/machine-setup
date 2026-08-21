@@ -48,3 +48,10 @@ copilot plugin install workiq@copilot-plugins
 copilot plugin install dotnet-dnceng@dotnet-arcade-skills
 copilot plugin install dotnet@awesome-copilot
 ```
+
+When working in this repository with experimental extensions enabled, the
+`github-notification-triage` canvas provides an interactive view of GitHub
+notifications and pull request review status. Its triage and cleanup rules are
+shared with the `notification-tools` plugin skills. The dashboard's **Run
+notification cleanup** button starts the `notification-cleanup` skill in the
+active chat; that skill retains its safety checks and confirmation step.
