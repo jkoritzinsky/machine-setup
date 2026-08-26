@@ -1,6 +1,6 @@
 {
   "name": "notification-tools",
   "description": "Personal productivity skills for GitHub notification triage, cleanup, and the interactive PR review dashboard.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "skills": "skills/"
 }
