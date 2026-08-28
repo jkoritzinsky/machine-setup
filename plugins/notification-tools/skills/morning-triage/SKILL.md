@@ -51,7 +51,16 @@ Fetch and triage the user's GitHub notifications, categorizing them by priority.
    - When a stacked PR is not the bottom of the stack, lower its tier by one level
      after the normal engagement/area calculation. Never let a stacked non-bottom PR
      outrank the bottom PR in the same stack.
- 
+
+5c. **Promote co-authored commit notifications** for PRs:
+   - For a commit notification on a PR authored by someone else, check whether the
+     current user is listed as a co-author of the commit.
+   - Confirm that the current user has already submitted an `APPROVED` review on
+     that PR.
+   - When both conditions are true, bump the notification's priority one tier
+     higher than its normal engagement/area priority. Apply this adjustment before
+     the PR stack adjustment.
+
 6. **Categorize by priority** using the rules below, then present a triage summary
    organized from highest to lowest priority.
 
