@@ -64,15 +64,15 @@ function flattenPages(value) {
 }
 
 function parseSubjectUrl(subjectUrl) {
-    const match = String(subjectUrl || "").match(/\/repos\/([^/]+\/[^/]+)\/(issues|pulls)\/(\d+)(?:$|\/)/);
+    const match = String(subjectUrl || "").match(/\/repos\/([^/]+\/[^/]+)\/(issues|pulls|commits)\/([^/]+)(?:$|\/)/);
     if (!match) {
         return null;
     }
 
     return {
         repository: match[1],
-        kind: match[2] === "pulls" ? "PullRequest" : "Issue",
-        number: Number(match[3]),
+        kind: match[2] === "pulls" ? "PullRequest" : match[2] === "commits" ? "Commit" : "Issue",
+        number: match[2] === "commits" ? match[3] : Number(match[3]),
     };
 }
 
@@ -127,7 +127,7 @@ function stackParent(body) {
     return match ? Number(match[1]) : null;
 }
 
-function calculatePriority(notification, item, area, priorMentionPending) {
+function calculatePriority(notification, item, area, priorMentionPending, coauthoredApprovedCommit) {
     const reason = notification.reason;
     let priority;
 
@@ -149,6 +149,10 @@ function calculatePriority(notification, item, area, priorMentionPending) {
         priority = "MEDIUM-LOW";
     } else {
         priority = "LOWEST";
+    }
+
+    if (coauthoredApprovedCommit && priority !== "HIGH") {
+        priority = priorityOrder[Math.max(priorityRank.get(priority) - 1, 0)];
     }
 
     const parent = stackParent(item?.body);
@@ -183,6 +187,7 @@ function baseNotification(notification, subject) {
         reviewRequested: false,
         requestedReviewers: [],
         approvedByUser: false,
+        coauthoredApprovedCommit: false,
         isMine: false,
         isDraft: false,
         isOtherOpen: false,
@@ -194,7 +199,32 @@ function baseNotification(notification, subject) {
     };
 }
 
-async function enrichNotification(notification, username) {
+function isCoAuthor(commit, user) {
+    const message = String(commit?.commit?.message || "");
+    const profileValues = [user?.login, user?.name, user?.email]
+        .filter(Boolean)
+        .map((value) => String(value).trim().toLowerCase());
+    const noreplyEmail = user?.id && user?.login
+        ? `${user.id}+${user.login}@users.noreply.github.com`.toLowerCase()
+        : null;
+    if (noreplyEmail) {
+        profileValues.push(noreplyEmail);
+    }
+
+    return message.split(/\r?\n/).some((line) => {
+        const match = line.match(/^co-authored-by:\s*(.*?)\s*<([^>]+)>/i);
+        if (!match) {
+            return false;
+        }
+
+        return [match[1], match[2]]
+            .map((value) => value.trim().toLowerCase())
+            .some((value) => profileValues.includes(value));
+    });
+}
+
+async function enrichNotification(notification, user) {
+    const username = user.login;
     const subject = parseSubjectUrl(notification.subject?.url);
     const result = baseNotification(notification, subject);
     if (!subject) {
@@ -202,36 +232,52 @@ async function enrichNotification(notification, username) {
     }
 
     try {
-        const item = await runGhApi([`repos/${subject.repository}/${subject.kind === "PullRequest" ? "pulls" : "issues"}/${subject.number}`]);
+        let item;
+        let commitCoauthored = false;
+        if (subject.kind === "Commit") {
+            const commit = await runGhApi([`repos/${subject.repository}/commits/${subject.number}`]);
+            commitCoauthored = isCoAuthor(commit, user);
+            const pullRequests = await runGhApi([`repos/${subject.repository}/commits/${subject.number}/pulls`]);
+            item = Array.isArray(pullRequests) ? pullRequests.find((pullRequest) => pullRequest?.user?.login !== username) : null;
+            if (!item) {
+                return { ...result, error: "The commit is not associated with someone else's PR." };
+            }
+        } else {
+            item = await runGhApi([`repos/${subject.repository}/${subject.kind === "PullRequest" ? "pulls" : "issues"}/${subject.number}`]);
+        }
+        const itemKind = subject.kind === "Commit" ? "PullRequest" : subject.kind;
+        const itemNumber = subject.kind === "Commit" ? item.number : subject.number;
         const labels = labelNames(item);
         const area = areaInfo(subject.repository, labels);
-        const commentsAndReviews = subject.kind === "PullRequest"
+        const commentsAndReviews = itemKind === "PullRequest"
             ? await Promise.all([
-                runGhApi([`repos/${subject.repository}/issues/${subject.number}/comments`, "--paginate", "--slurp"]),
-                runGhApi([`repos/${subject.repository}/pulls/${subject.number}/reviews`, "--paginate", "--slurp"]),
+                runGhApi([`repos/${subject.repository}/issues/${itemNumber}/comments`, "--paginate", "--slurp"]),
+                runGhApi([`repos/${subject.repository}/pulls/${itemNumber}/reviews`, "--paginate", "--slurp"]),
             ])
             : [[], []];
         const comments = flattenPages(commentsAndReviews[0]);
         const reviews = flattenPages(commentsAndReviews[1]);
         const approvedByUser = reviews.some((review) => review?.user?.login === username && review.state === "APPROVED");
         const escapedUsername = String(username).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const priorMentionPending = subject.kind === "PullRequest"
+        const priorMentionPending = itemKind === "PullRequest"
             && comments.some((comment) => new RegExp(`@${escapedUsername}\\b`, "i").test(comment?.body || ""))
             && !approvedByUser;
-        const priority = calculatePriority(notification, item, area, priorMentionPending);
-        const isMine = subject.kind === "PullRequest" && item.user?.login === username;
-        const isDraft = subject.kind === "PullRequest" && item.draft === true;
-        const isOtherOpen = subject.kind === "PullRequest" && !isMine && item.state === "open" && !isDraft;
-        const isOtherDraft = subject.kind === "PullRequest" && !isMine && item.state === "open" && isDraft;
-        const isStacked = subject.kind === "PullRequest" && priority.stackParent !== null;
+        const isMine = itemKind === "PullRequest" && item.user?.login === username;
+        const isDraft = itemKind === "PullRequest" && item.draft === true;
+        const isOtherOpen = itemKind === "PullRequest" && !isMine && item.state === "open" && !isDraft;
+        const isOtherDraft = itemKind === "PullRequest" && !isMine && item.state === "open" && isDraft;
+        const coauthoredApprovedCommit = subject.kind === "Commit" && commitCoauthored && !isMine
+            && approvedByUser;
+        const priority = calculatePriority(notification, item, area, priorMentionPending, coauthoredApprovedCommit);
+        const isStacked = itemKind === "PullRequest" && priority.stackParent !== null;
         const communityContribution = labels.some((label) => label.toLowerCase() === "community-contribution");
 
         return {
             ...result,
             title: item.title || result.title,
             repository: subject.repository,
-            kind: subject.kind,
-            number: subject.number,
+            kind: itemKind,
+            number: itemNumber,
             htmlUrl: item.html_url || result.htmlUrl,
             state: item.state || null,
             status: item.merged_at ? "merged" : item.state || "unknown",
@@ -255,10 +301,11 @@ async function enrichNotification(notification, username) {
                             ? "other-draft-pr"
                             : null,
             priorMentionPending,
-            reviewStatus: subject.kind === "PullRequest" ? reviewStatus(reviews, username) : null,
+            reviewStatus: itemKind === "PullRequest" ? reviewStatus(reviews, username) : null,
             reviewRequested: notification.reason === "review_requested",
             requestedReviewers: (item.requested_reviewers || []).map((reviewer) => reviewer.login || reviewer.name).filter(Boolean),
             approvedByUser,
+            coauthoredApprovedCommit,
             error: null,
         };
     } catch (error) {
@@ -298,7 +345,7 @@ async function refreshEntry(entry) {
         }
 
         const notifications = await Promise.all(
-            flattenPages(rawNotifications).map((notification) => enrichNotification(notification, username)),
+            flattenPages(rawNotifications).map((notification) => enrichNotification(notification, user)),
         );
         notifications.sort((left, right) => {
             const priorityDifference = priorityRank.get(left.priority) - priorityRank.get(right.priority);
@@ -516,6 +563,7 @@ function renderHtml(initialFilter) {
           + (item.reviewRequested ? " · review requested" : "")
           + (item.requestedReviewers?.length ? " · requested: " + escapeHtml(item.requestedReviewers.join(", ")) : "")
           + (item.approvedByUser ? " · approved by you" : "")
+          + (item.coauthoredApprovedCommit ? " · co-authored commit after approval" : "")
           + "</div>"
         : "";
       const category = item.kind === "PullRequest"
