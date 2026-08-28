@@ -3,13 +3,15 @@ name: notification-cleanup
 description: >
   Clean up stale GitHub notifications by marking closed/merged items as done.
   Use when asked to clean up notifications, dismiss stale notifications, or mark
-  old notifications as read/done.
+  old notifications as read/done, including eligible comment-free approvals on
+  someone else's PR.
 ---
 
 # Notification Cleanup
 
 Mark stale notifications as "Done" — i.e., closed/merged PRs and closed issues
-where there has been no new comment since closure.
+where there has been no new comment since closure. Also dismiss eligible
+comment-free approval notifications for someone else's open PRs.
 
 ## Steps
 
@@ -22,7 +24,8 @@ where there has been no new comment since closure.
 3. **Check closed/merged status** for each candidate:
    - For PRs: fetch `repos/{owner}/{repo}/pulls/{number}` and check `state` and `merged_at`.
    - For Issues: fetch `repos/{owner}/{repo}/issues/{number}` and check `state` and `closed_at`.
-   - Skip any item that is still open.
+   - Process closed items through the stale-closed checks in this step. Process
+     open PR items through the approval-only notification check in step 6.
 
 4. **Check for post-closure comments**:
    - If the notification's `subject.latest_comment_url` is non-null, fetch it and
@@ -73,25 +76,55 @@ where there has been no new comment since closure.
      dismiss** the notification — the user needs to know their work was reverted.
    - If the user has participated, proceed normally (dismiss if stale-closed).
 
-6. **Mark stale-closed notifications as Done** by calling:
+6. **Approval-only notification exception**: Also consider notifications for an
+   open PR when the notification is solely about another user approving it:
+   - Fetch the PR via `repos/{owner}/{repo}/pulls/{number}`. Apply this rule when
+     `user.login` is different from the current user, so the PR belongs to someone
+     else.
+   - Fetch the PR's reviews via `repos/{owner}/{repo}/pulls/{number}/reviews`,
+     inline review comments via `repos/{owner}/{repo}/pulls/{number}/comments`,
+     and issue comments via `repos/{owner}/{repo}/issues/{number}/comments`.
+     Identify the approval associated with the notification and require that it
+     was submitted by someone other than the current user, has no review body,
+     and has no inline review comments. Treat any issue comment, review body, or
+     inline review comment as meaningful discussion.
+   - Group notifications for the same PR and order them by `updated_at`. Find the
+     user's most recent approval notification before the candidate. The candidate
+     is eligible when either the immediately prior notification is the user's
+     approval, or every notification since the user's approval through the
+     candidate is an approval with no review body, issue comment, or inline review
+     comment. The notification sequence must include a prior approval by the
+     current user, and each notification in the interval must be an approval;
+     comment, non-approval review, mention, assignment, or other activity makes
+     the candidate ineligible.
+   - This exception only dismisses the approval notification; it does not dismiss
+     the PR's other notifications. Report it as "approval with no comments".
+
+7. **Mark eligible notifications as Done** by calling:
    ```
    gh api -X DELETE /notifications/threads/{thread_id}
    ```
    where `thread_id` is the notification `id`.
 
-7. **Report results**: Print a summary of how many notifications were marked done,
+8. **Report results**: Print a summary of how many notifications were marked done,
    listing each one with its title and reason it was dismissed (e.g., "merged",
-   "closed"). Also list any notifications that were skipped because they had
-   post-closure comments, so the user is aware of them.
+   "closed", or "approval with no comments"). Also list any notifications that
+   were skipped because they had post-closure comments or did not meet the
+   approval-only exception, so the user is aware of them.
 
 ## Safety
 
-- Only dismiss notifications for items that are closed/merged WITH no post-closure comments.
-- Never dismiss notifications for open items.
+- Dismiss closed/merged notifications with no post-closure comments, and dismiss
+  open-PR approval notifications when they meet every condition in the
+  approval-only exception.
 - Never dismiss notifications where there is a comment newer than the closure time,
   as that may indicate follow-up discussion the user should see, except when the
   only post-closure comment is a single `@copilot code review` no-op summary that
   says it reviewed `N` files and generated no comments.
+- Approval-only dismissal requires a PR owned by someone else, an approval with
+  no body or review comments, and either a prior notification that is the user's
+  approval or a sequence where every notification since the user's approval is
+  an approval with no comments.
 - Never dismiss notifications for revert PRs that revert the user's own PRs unless
   the user has already participated in the revert PR conversation.
 - Print what will be dismissed and ask for user confirmation before making any
