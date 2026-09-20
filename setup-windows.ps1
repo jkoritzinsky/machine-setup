@@ -21,7 +21,6 @@ $tools = @(
     @{ Id = 'Git.Git';              Name = 'Git' },
     @{ Id = 'jqlang.jq';            Name = 'jq' },
     @{ Id = 'GitHub.cli';           Name = 'GitHub CLI (gh)' },
-    @{ Id = 'Docker.DockerDesktop'; Name = 'Docker Desktop' },
     @{ Id = 'Microsoft.DotNet.SDK.9'; Name = '.NET SDK' }
 )
 
@@ -42,6 +41,39 @@ $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
 # Note: ripgrep is NOT installed on Windows (README: "Non-Windows only")
+
+# ── WSL ──────────────────────────────────────────────────────────────────────
+
+Write-Step "Installing WSL"
+
+wsl --status 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "    Installing WSL..."
+    wsl --install --no-launch
+    Write-Done "WSL installed"
+} else {
+    Write-Skip "WSL is already installed"
+}
+
+Write-Step "Ensuring wslc (WSL Containers) is available"
+
+$wslcAvailable = $null -ne (Get-Command wslc -ErrorAction SilentlyContinue)
+if (-not $wslcAvailable) {
+    $wslcOutput = wsl --help 2>&1 | Out-String
+    $wslcAvailable = $wslcOutput -match '\bwslc\b'
+}
+
+if ($wslcAvailable) {
+    Write-Skip "wslc is already available"
+} else {
+    Write-Host "    wslc not found; updating WSL to the pre-release channel..."
+    wsl --update --pre-release
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to update WSL to the pre-release channel (exit code $LASTEXITCODE)"
+    }
+    wsl --shutdown
+    Write-Done "WSL updated to pre-release; wslc should now be available"
+}
 
 # ── Dotnet tools ────────────────────────────────────────────────────────────
 
@@ -167,7 +199,7 @@ if (-not $copilotExtensionInstalled) {
 Write-Step "Setup complete!"
 Write-Host @"
     Remaining manual steps:
-      1. Sign in to Docker Desktop and start the service
+      1. Restart your machine if WSL was just installed for the first time
       2. Run 'gh auth login' if not already authenticated
       3. Add '%USERPROFILE%\\.dotnet\\tools' to PATH if dotnet tools are not found
       4. Verify windbg MCP proxy is installed via Microsoft Store (WinDbg Preview)
