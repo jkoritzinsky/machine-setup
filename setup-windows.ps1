@@ -47,12 +47,14 @@ $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';
 Write-Step "Installing WSL"
 
 $wslCommand = Get-Command wsl.exe -ErrorAction SilentlyContinue
+$freshWslInstall = $false
 if (-not $wslCommand) {
     Write-Host "    Installing WSL..."
     wsl --install --no-launch
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to install WSL (exit code $LASTEXITCODE)"
     }
+    $freshWslInstall = $true
     Write-Done "WSL installed"
 } else {
     Write-Skip "WSL is already installed"
@@ -60,22 +62,26 @@ if (-not $wslCommand) {
 
 Write-Step "Ensuring wslc (WSL Containers) is available"
 
-$wslcAvailable = $null -ne (Get-Command wslc -ErrorAction SilentlyContinue)
-if (-not $wslcAvailable) {
-    wslc --version 2>&1 | Out-Null
-    $wslcAvailable = $LASTEXITCODE -eq 0
-}
-
-if ($wslcAvailable) {
-    Write-Skip "wslc is already available"
+if ($freshWslInstall) {
+    Write-Skip "WSL was just installed; a restart is required before wslc can be checked or used"
 } else {
-    Write-Host "    wslc not found; updating WSL to the pre-release channel..."
-    wsl --update --pre-release
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to update WSL to the pre-release channel (exit code $LASTEXITCODE)"
+    $wslcAvailable = $null -ne (Get-Command wslc -ErrorAction SilentlyContinue)
+    if (-not $wslcAvailable) {
+        wslc --version 2>&1 | Out-Null
+        $wslcAvailable = $LASTEXITCODE -eq 0
     }
-    wsl --shutdown
-    Write-Done "WSL updated to pre-release; wslc should now be available"
+
+    if ($wslcAvailable) {
+        Write-Skip "wslc is already available"
+    } else {
+        Write-Host "    wslc not found; updating WSL to the pre-release channel..."
+        wsl --update --pre-release
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to update WSL to the pre-release channel (exit code $LASTEXITCODE)"
+        }
+        wsl --shutdown
+        Write-Done "WSL updated to pre-release; wslc should now be available"
+    }
 }
 
 # ── Dotnet tools ────────────────────────────────────────────────────────────
