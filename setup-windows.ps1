@@ -44,6 +44,9 @@ $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';
 
 # ── WSL ──────────────────────────────────────────────────────────────────────
 
+# Runs a native command and throws if it exits with a non-zero exit code.
+# Intended for native executable invocations only (relies on $LASTEXITCODE,
+# which cmdlet-only script blocks do not set).
 function Invoke-CheckedCommand {
     param(
         [Parameter(Mandatory=$true)][scriptblock]$ScriptBlock,
@@ -81,8 +84,8 @@ if ($freshWslInstall) {
         Write-Skip "wslc is already available"
     } else {
         Write-Host "    wslc not found; updating WSL to the pre-release channel..."
+        Write-Host "    NOTE: this will shut down any running WSL distributions, and unsaved WSL state will be lost."
         Invoke-CheckedCommand -ScriptBlock { wsl --update --pre-release } -ErrorMessage "Failed to update WSL to the pre-release channel"
-        Write-Host "    Shutting down running WSL distributions to apply the update (any unsaved WSL state will be lost)..."
         Invoke-CheckedCommand -ScriptBlock { wsl --shutdown } -ErrorMessage "Failed to shut down WSL"
         Write-Done "WSL updated to pre-release; restart your terminal (or machine) and re-run this script to verify wslc is available"
     }
