@@ -82,7 +82,7 @@ if ($freshWslInstall) {
         Write-Host "    wslc not found; updating WSL to the pre-release channel..."
         Invoke-CheckedCommand -ScriptBlock { wsl --update --pre-release } -ErrorMessage "Failed to update WSL to the pre-release channel"
         Invoke-CheckedCommand -ScriptBlock { wsl --shutdown } -ErrorMessage "Failed to shut down WSL"
-        Write-Done "WSL updated to pre-release; wslc should now be available"
+        Write-Done "WSL updated to pre-release; restart your terminal (or machine) and re-run this script to verify wslc is available"
     }
 }
 
