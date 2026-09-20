@@ -44,16 +44,25 @@ $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';
 
 # ── WSL ──────────────────────────────────────────────────────────────────────
 
+function Invoke-CheckedCommand {
+    param(
+        [Parameter(Mandatory=$true)][scriptblock]$ScriptBlock,
+        [Parameter(Mandatory=$true)][string]$ErrorMessage
+    )
+
+    & $ScriptBlock
+    if ($LASTEXITCODE -ne 0) {
+        throw "$ErrorMessage (exit code $LASTEXITCODE)"
+    }
+}
+
 Write-Step "Installing WSL"
 
 $wslCommand = Get-Command wsl.exe -ErrorAction SilentlyContinue
 $freshWslInstall = $false
 if (-not $wslCommand) {
     Write-Host "    Installing WSL..."
-    wsl --install --no-launch
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to install WSL (exit code $LASTEXITCODE)"
-    }
+    Invoke-CheckedCommand -ScriptBlock { wsl --install --no-launch } -ErrorMessage "Failed to install WSL"
     $freshWslInstall = $true
     Write-Done "WSL installed"
 } else {
@@ -66,19 +75,12 @@ if ($freshWslInstall) {
     Write-Skip "WSL was just installed; a restart is required before wslc can be checked or used"
 } else {
     $wslcAvailable = $null -ne (Get-Command wslc -ErrorAction SilentlyContinue)
-    if (-not $wslcAvailable) {
-        wslc --version 2>&1 | Out-Null
-        $wslcAvailable = $LASTEXITCODE -eq 0
-    }
 
     if ($wslcAvailable) {
         Write-Skip "wslc is already available"
     } else {
         Write-Host "    wslc not found; updating WSL to the pre-release channel..."
-        wsl --update --pre-release
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to update WSL to the pre-release channel (exit code $LASTEXITCODE)"
-        }
+        Invoke-CheckedCommand -ScriptBlock { wsl --update --pre-release } -ErrorMessage "Failed to update WSL to the pre-release channel"
         wsl --shutdown
         Write-Done "WSL updated to pre-release; wslc should now be available"
     }
