@@ -6,12 +6,16 @@
 - jq
 - gh CLI
 - copilot CLI
-- Docker
 - .NET SDK (latest release)
 
 ### Non-Windows only
 
+- Docker
 - ripgrep
+
+### Windows only
+
+- WSL (with wslc / WSL Containers available; WSL is updated to the pre-release channel if wslc is not present)
 
 ## Dotnet tools (dotnet tool install -g)
 

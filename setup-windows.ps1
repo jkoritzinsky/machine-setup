@@ -21,7 +21,6 @@ $tools = @(
     @{ Id = 'Git.Git';              Name = 'Git' },
     @{ Id = 'jqlang.jq';            Name = 'jq' },
     @{ Id = 'GitHub.cli';           Name = 'GitHub CLI (gh)' },
-    @{ Id = 'Docker.DockerDesktop'; Name = 'Docker Desktop' },
     @{ Id = 'Microsoft.DotNet.SDK.9'; Name = '.NET SDK' }
 )
 
@@ -42,6 +41,55 @@ $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
 
 # Note: ripgrep is NOT installed on Windows (README: "Non-Windows only")
+
+# ── WSL ──────────────────────────────────────────────────────────────────────
+
+# Runs a native command and throws if it exits with a non-zero exit code.
+# Intended for native executable invocations only (relies on $LASTEXITCODE,
+# which cmdlet-only script blocks do not set).
+function Invoke-CheckedCommand {
+    param(
+        [Parameter(Mandatory=$true)][scriptblock]$ScriptBlock,
+        [Parameter(Mandatory=$true)][string]$ErrorMessage
+    )
+
+    $global:LASTEXITCODE = 0
+    & $ScriptBlock
+    if ($LASTEXITCODE -ne 0) {
+        throw "$ErrorMessage (exit code $LASTEXITCODE)"
+    }
+}
+
+Write-Step "Installing WSL"
+
+$wslCommand = Get-Command wsl.exe -ErrorAction SilentlyContinue
+$freshWslInstall = $false
+if (-not $wslCommand) {
+    Write-Host "    Installing WSL..."
+    Invoke-CheckedCommand -ScriptBlock { wsl --install --no-launch } -ErrorMessage "Failed to install WSL"
+    $freshWslInstall = $true
+    Write-Done "WSL installed"
+} else {
+    Write-Skip "WSL is already installed"
+}
+
+Write-Step "Ensuring wslc (WSL Containers) is available"
+
+if ($freshWslInstall) {
+    Write-Skip "WSL was just installed; a restart is required before wslc can be checked or used"
+} else {
+    $wslcAvailable = $null -ne (Get-Command wslc -ErrorAction SilentlyContinue)
+
+    if ($wslcAvailable) {
+        Write-Skip "wslc is already available"
+    } else {
+        Write-Host "    wslc not found; updating WSL to the pre-release channel..."
+        Write-Host "    NOTE: this will shut down any running WSL distributions, and unsaved WSL state will be lost."
+        Invoke-CheckedCommand -ScriptBlock { wsl --update --pre-release } -ErrorMessage "Failed to update WSL to the pre-release channel"
+        Invoke-CheckedCommand -ScriptBlock { wsl --shutdown } -ErrorMessage "Failed to shut down WSL"
+        Write-Done "WSL updated to pre-release; restart your terminal (or machine) and re-run this script to verify wslc is available"
+    }
+}
 
 # ── Dotnet tools ────────────────────────────────────────────────────────────
 
@@ -167,7 +215,7 @@ if (-not $copilotExtensionInstalled) {
 Write-Step "Setup complete!"
 Write-Host @"
     Remaining manual steps:
-      1. Sign in to Docker Desktop and start the service
+      1. Restart your machine if WSL was just installed for the first time
       2. Run 'gh auth login' if not already authenticated
       3. Add '%USERPROFILE%\\.dotnet\\tools' to PATH if dotnet tools are not found
       4. Verify windbg MCP proxy is installed via Microsoft Store (WinDbg Preview)
