@@ -46,8 +46,8 @@ $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';
 
 Write-Step "Installing WSL"
 
-wsl --status 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) {
+$wslCommand = Get-Command wsl.exe -ErrorAction SilentlyContinue
+if (-not $wslCommand) {
     Write-Host "    Installing WSL..."
     wsl --install --no-launch
     if ($LASTEXITCODE -ne 0) {
@@ -62,8 +62,8 @@ Write-Step "Ensuring wslc (WSL Containers) is available"
 
 $wslcAvailable = $null -ne (Get-Command wslc -ErrorAction SilentlyContinue)
 if (-not $wslcAvailable) {
-    $wslcOutput = wsl --help 2>&1 | Out-String
-    $wslcAvailable = $wslcOutput -match '\bwslc\b'
+    wslc --version 2>&1 | Out-Null
+    $wslcAvailable = $LASTEXITCODE -eq 0
 }
 
 if ($wslcAvailable) {
