@@ -50,6 +50,7 @@ function Invoke-CheckedCommand {
         [Parameter(Mandatory=$true)][string]$ErrorMessage
     )
 
+    $global:LASTEXITCODE = 0
     & $ScriptBlock
     if ($LASTEXITCODE -ne 0) {
         throw "$ErrorMessage (exit code $LASTEXITCODE)"
@@ -81,6 +82,7 @@ if ($freshWslInstall) {
     } else {
         Write-Host "    wslc not found; updating WSL to the pre-release channel..."
         Invoke-CheckedCommand -ScriptBlock { wsl --update --pre-release } -ErrorMessage "Failed to update WSL to the pre-release channel"
+        Write-Host "    Shutting down running WSL distributions to apply the update (any unsaved WSL state will be lost)..."
         Invoke-CheckedCommand -ScriptBlock { wsl --shutdown } -ErrorMessage "Failed to shut down WSL"
         Write-Done "WSL updated to pre-release; restart your terminal (or machine) and re-run this script to verify wslc is available"
     }
