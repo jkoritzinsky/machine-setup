@@ -50,6 +50,9 @@ wsl --status 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "    Installing WSL..."
     wsl --install --no-launch
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to install WSL (exit code $LASTEXITCODE)"
+    }
     Write-Done "WSL installed"
 } else {
     Write-Skip "WSL is already installed"
