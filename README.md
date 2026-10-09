@@ -38,6 +38,7 @@
 ## Copilot plugins
 
 - notification-tools@machine-setup (this repo)
+- session-stacks@machine-setup (this repo)
 - workiq@copilot-plugins
 - dotnet-dnceng@dotnet-arcade-skills
 - dotnet@awesome-copilot
@@ -48,10 +49,17 @@ Install via Copilot CLI:
 copilot plugin marketplace add jkoritzinsky/machine-setup
 copilot plugin marketplace add dotnet/arcade-skills
 copilot plugin install notification-tools@machine-setup
+copilot plugin install session-stacks@machine-setup
 copilot plugin install workiq@copilot-plugins
 copilot plugin install dotnet-dnceng@dotnet-arcade-skills
 copilot plugin install dotnet@awesome-copilot
 ```
+
+The [session-stacks plugin](plugins/session-stacks/README.md) includes
+`create-session-stack` and `rebase-session-stack`, their supporting protocols,
+guarded Git helpers, and disposable fixture tests. Creating layer sessions
+requires an explicit session-stack request; setup grants no standing rebase or
+publication authority. See the plugin README for prerequisites and local checks.
 
 When working in this repository with experimental extensions enabled, the
 `github-notification-triage` canvas provides an interactive view of GitHub
