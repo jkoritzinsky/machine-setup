@@ -205,6 +205,7 @@ if (-not $copilotExtensionInstalled) {
     Invoke-CopilotPluginCommand -Label "Added marketplace jkoritzinsky/machine-setup" -Args @('plugin', 'marketplace', 'add', 'jkoritzinsky/machine-setup')
     Invoke-CopilotPluginCommand -Label "Added marketplace dotnet/arcade-skills" -Args @('plugin', 'marketplace', 'add', 'dotnet/arcade-skills')
     Invoke-CopilotPluginCommand -Label "Installed notification-tools@machine-setup" -Args @('plugin', 'install', 'notification-tools@machine-setup')
+    Invoke-CopilotPluginCommand -Label "Installed session-stacks@machine-setup" -Args @('plugin', 'install', 'session-stacks@machine-setup')
     Invoke-CopilotPluginCommand -Label "Installed workiq@copilot-plugins" -Args @('plugin', 'install', 'workiq@copilot-plugins')
     Invoke-CopilotPluginCommand -Label "Installed dotnet-dnceng@dotnet-arcade-skills" -Args @('plugin', 'install', 'dotnet-dnceng@dotnet-arcade-skills')
     Invoke-CopilotPluginCommand -Label "Installed dotnet@awesome-copilot" -Args @('plugin', 'install', 'dotnet@awesome-copilot')

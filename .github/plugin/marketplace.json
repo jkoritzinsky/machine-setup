@@ -4,7 +4,7 @@
     "name": "Jeremy Koritzinsky"
   },
   "metadata": {
-    "description": "Personal productivity plugins for GitHub notification management",
+    "description": "Personal productivity plugins for GitHub notifications and session-owned PR stacks",
     "version": "0.1.0"
   },
   "plugins": [
@@ -12,6 +12,12 @@
       "name": "notification-tools",
       "source": "plugins/notification-tools",
       "description": "GitHub notification triage, cleanup, and interactive PR review dashboard",
+      "version": "0.1.0"
+    },
+    {
+      "name": "session-stacks",
+      "source": "plugins/session-stacks",
+      "description": "Set up and safely coordinate session-owned PR stacks with guarded Git handoffs and optional cooperative owner-light leases",
       "version": "0.1.0"
     }
   ]

@@ -260,6 +260,7 @@ else
     run_copilot_cmd "Added marketplace jkoritzinsky/machine-setup" plugin marketplace add jkoritzinsky/machine-setup
     run_copilot_cmd "Added marketplace dotnet/arcade-skills" plugin marketplace add dotnet/arcade-skills
     run_copilot_cmd "Installed notification-tools@machine-setup" plugin install notification-tools@machine-setup
+    run_copilot_cmd "Installed session-stacks@machine-setup" plugin install session-stacks@machine-setup
     run_copilot_cmd "Installed workiq@copilot-plugins" plugin install workiq@copilot-plugins
     run_copilot_cmd "Installed dotnet-dnceng@dotnet-arcade-skills" plugin install dotnet-dnceng@dotnet-arcade-skills
     run_copilot_cmd "Installed dotnet@awesome-copilot" plugin install dotnet@awesome-copilot

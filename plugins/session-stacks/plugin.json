@@ -1,0 +1,6 @@
+{
+  "name": "session-stacks",
+  "description": "Set up and safely coordinate session-owned PR stacks with guarded Git handoffs and optional cooperative owner-light leases.",
+  "version": "0.1.0",
+  "skills": "skills/"
+}
