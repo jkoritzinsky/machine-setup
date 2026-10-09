@@ -58,6 +58,14 @@ checkout, replay, or publication authority.
 
 ## Local checks
 
+The **Session stacks tests** GitHub Actions workflow runs on pushes, pull requests,
+and manual dispatches. It checks packaging, owner-light coordination, and
+PowerShell fixtures on Linux, macOS, and Windows with Python 3.14, plus the minimum
+supported Python 3.9 on Linux. Unix jobs also run the Bash fixtures using the
+system Bash (including macOS Bash 3.2). Fixtures use the runner's temporary
+directory outside the checkout, suppress Python bytecode, and require no Copilot
+installation, credentials, live sessions, or real PR stacks.
+
 From the repository root, run the packaging checks without installing the plugin:
 
 ```powershell
