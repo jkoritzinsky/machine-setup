@@ -1,0 +1,59 @@
+name: Session stacks tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Session stacks (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ['3.14']
+        include:
+          - os: ubuntu-latest
+            python: '3.9'
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Test plugin packaging and skill resources
+        run: python -B -m unittest discover -s "$env:GITHUB_WORKSPACE/plugins/session-stacks/tests" -p test_packaging.py -v
+
+      - name: Test owner-light coordination
+        run: python -B "$env:GITHUB_WORKSPACE/plugins/session-stacks/skills/rebase-session-stack/tests/owner_light_tests.py" --scratch-root "$env:RUNNER_TEMP"
+
+      - name: Test PowerShell Git handoff
+        run: pwsh -NoProfile -File "$env:GITHUB_WORKSPACE/plugins/session-stacks/skills/rebase-session-stack/tests/git-handoff.Tests.ps1" -ScratchRoot "$env:RUNNER_TEMP"
+
+      - name: Test native Bash Git handoff
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export PATH="/bin:$PATH"
+          /bin/bash "$GITHUB_WORKSPACE/plugins/session-stacks/skills/rebase-session-stack/tests/git-handoff.Tests.sh" "$RUNNER_TEMP"
