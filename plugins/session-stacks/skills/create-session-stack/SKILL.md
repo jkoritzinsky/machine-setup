@@ -48,7 +48,9 @@ Use isolated worktrees, not branch sessions sharing one checkout.
 Resolve bottom-to-top order from the supplied stack and live PR bases, not PR
 numbers. When native membership exists, verify and preserve it. Pin full heads,
 head repositories/branches, historical boundaries, and
-selected layers. Do not guess a linear order for forks/ambiguous chains. Retain
+selected layers. A session stack must be linear: one ordered chain, with no
+branches, joins, or other DAG topology. Never create a DAG of session stacks.
+Do not guess a linear order for forks/ambiguous chains. Retain
 merged/closed entries as history; if the requested scope includes them, clarify
 whether they need owners instead of silently omitting them or recreating branches.
 
@@ -79,16 +81,21 @@ verified ID), `execution_location: local`, `workspace_type: worktree`,
 `coordinate_with_creator: true`, and `notify_on_idle: once`.
 Leave `base_branch` unset: these are owners of existing pinned tips, not newly
 authored dependent branches. Do not use cloud sessions or fork the whole conversation.
-Create idle sessions first; save every returned ID/path immediately.
+Allocate strictly bottom-to-top, one layer at a time. Create and set up the first
+layer's session, then wait for that session to complete its layer's work before
+creating the next layer's session. Repeat in order through the top layer. A session
+creation, setup acknowledgment, or idle status is not completion of layer work;
+never pre-create sessions for later layers or run layer work in parallel. Save each
+returned ID/path immediately.
 
 Verify the first child's project, host/runtime and accessible worktree before
-allocating the rest. If app metadata cannot prove runtime identity, complete that
-first child's bounded setup/acknowledgment before creating the others. Prepare
-concrete expected refs and packet transport for each idle worktree. Use one bounded
-immediate setup message with the packet, exact
-checkout instruction, coordinator identity, and owner-only protocol. Preserve the
-generated branch; attach the existing owned PR branch using the guarded Git protocol.
-Do not create a replacement PR or trust an app's idle status as a checkout receipt.
+proceeding. If app metadata cannot prove runtime identity, complete that first
+child's bounded setup/acknowledgment before continuing. Prepare the next layer's
+concrete expected refs and packet transport when it is eligible to start. Use one
+bounded immediate setup message with the packet, exact checkout instruction,
+coordinator identity, and owner-only protocol. Preserve the generated branch;
+attach the existing owned PR branch using the guarded Git protocol. Do not create a
+replacement PR or trust an app's idle status as a checkout receipt.
 
 Each owner reports one verified setup acknowledgment: loaded packet identity,
 project/environment, actual branch/head/common directory, clean checkout, and
